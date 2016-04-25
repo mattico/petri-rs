@@ -1,0 +1,17 @@
+[package]
+name = "petri"
+version = "0.1.0"
+authors = ["Matt Ickstadt <mattico8@gmail.com>"]
+
+[features]
+default = ["staticfile/cache"]
+
+[dependencies]
+log = "0.3.6"
+env_logger = "0.3.3"
+iron = "0.3.0"
+router = "0.1.1"
+staticfile = "0.2.0"
+time = "0.1.35"
+mount = "0.1.0"
+websocket = "0.17.0"
