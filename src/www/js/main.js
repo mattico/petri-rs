@@ -136,22 +136,23 @@ function Blob(player, size, position, velocity) {
     };
 
     this.draw = function(gl, program) {
-        const NumVertices = 16;
-        const FanAngle = (2 * Math.PI) / NumVertices;
-        var vertices = [this.position.clone()];
+        const ATTRIBUTES = 2;
+        const numFans = 16;
+        const degreePerFan = (2 * Math.PI) / numFans;
+        var vertexData = [this.position.x, this.position.y];
 
-        for (var i = 1; i <= NumVertices; i++) {
-            var theta = i * FanAngle;
-            var x = this.position.x + Math.cos(theta) * this.radius;
-            var y = this.position.y + Math.cos(theta) * this.radius;
-            vertices.push(new Point(x, y));
+        for(var i = 0; i <= numFans; i++) {
+          var index = ATTRIBUTES * i + 2; // there is already 2 items in array
+          var angle = degreePerFan * (i+1);
+          vertexData[index] = this.position.x + Math.cos(angle) * this.radius;
+          vertexData[index + 1] = this.position.y + Math.sin(angle) * this.radius;
         }
 
-        var vertexData = new Float32Array(flattenPointArray(vertices));
+        var vertexDataTyped = new Float32Array(vertexData);
 
         var buffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-        gl.bufferData(gl.ARRAY_BUFFER, vertexData, gl.STATIC_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER, vertexDataTyped, gl.STATIC_DRAW);
 
         var resolutionLocation = gl.getUniformLocation(program, "u_resolution");
         gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
@@ -159,9 +160,8 @@ function Blob(player, size, position, velocity) {
         gl.enableVertexAttribArray(positionLocation);
 
         var positionLocation = gl.getAttribLocation(program, "a_position");
-        gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 2 * Float32Array.BYTES_PER_ELEMENT, 0);
-        gl.drawArrays(gl.TRIANGLE_FAN, 0, vertexData.length/2);
-
+        gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, ATTRIBUTES * Float32Array.BYTES_PER_ELEMENT, 0);
+        gl.drawArrays(gl.TRIANGLE_FAN, 0, vertexData.length/ATTRIBUTES);
     };
 }
 
