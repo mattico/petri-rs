@@ -1,6 +1,8 @@
 'use strict';
 
-function init() {
+var game = {};
+
+game.init = function() {
     window.onresize = onResize;
     
     var canvas = document.getElementById('canvas');
@@ -56,12 +58,31 @@ function init() {
 
         // draw
         gl.drawArrays(gl.TRIANGLES, 0, 6);
-        
-        draw(gl, 0);
+
+        game.draw(gl, 0);
         
     } else {
         console.log('No canvas support!');
     }
+}
+
+game.update = function(gl, time) {
+
+}
+
+game.draw = function(gl, time) {
+
+
+
+
+    window.requestAnimationFrame(function(time) { game.draw(gl, time) });
+}
+
+function onResize() {
+    var canvas = document.getElementById('canvas');
+    
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 }
 
 function getShader(gl, path, type) {
@@ -80,19 +101,4 @@ function getShader(gl, path, type) {
     }
 
     return shader;
-}
-
-function draw(gl, time) {
-
-
-
-
-    window.requestAnimationFrame(function(time) { draw(gl, time) });
-}
-
-function onResize() {
-    var canvas = document.getElementById('canvas');
-    
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
 }
