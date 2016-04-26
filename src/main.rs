@@ -39,7 +39,6 @@ impl AfterMiddleware for ResponseTime {
 
 
 fn main() {
-    
     env_logger::init().unwrap();
     
     // let cache_duration = Duration::from_secs(60*60*24*30);
@@ -56,5 +55,5 @@ fn main() {
     println!("Starting in '{}'", std::env::current_dir().unwrap().to_str().unwrap());
     
     println!("Serving on http://localhost:3000");
-    Iron::new(chain).http("localhost:3000").unwrap(); 
+    Iron::new(chain).http("localhost:3000").unwrap();
 }

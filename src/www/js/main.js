@@ -5,9 +5,11 @@ var game = {
     players: [],
     gl: null,
     program: null,
+    mouse: new Point(0, 0),
 
     init: function() {
         window.onresize = onResize;
+        document.onmousemove = onMouseMove;
 
         onResize();
 
@@ -53,9 +55,12 @@ var game = {
         var dt = this.lastTime - time;
         this.lastTime = time;
 
+        var viewportWidth = window.innerWidth;
+        var viewportHeight = window.innerHeight;
+
         var gl = this.gl;
         var program = this.program;
-
+        
         this.players.forEach(function(v) {
            v.update(dt);
            v.draw(gl, program); 
@@ -65,28 +70,35 @@ var game = {
     }
 };
 
+
 function Point(x, y) {
     this.x = x;
     this.y = y;
-    this.add = function(point) {
-        return Point(this.x + point.x,
-                     this.y + point.y);
-    };
-    this.sub = function(point) {
-        return Point(this.x - point.x,
-                     this.y - point.y);
-    };
-    this.distance = function(point) {
-        return Math.sqrt(Math.pow(this.x - point.x, 2) +
-                         Math.pow(this.y - point.y, 2));
-    };
-    this.clone = function() {
-        return new Point(this.x, this.y);
-    };
-    this.as_array = function() {
-        return [x, y];
-    };
 }
+
+Point.prototype.add = function(point) {
+    return new Point(this.x + point.x,
+                     this.y + point.y);
+};
+
+Point.prototype.sub = function(point) {
+    return new Point(this.x - point.x,
+                     this.y - point.y);
+};
+
+Point.prototype.distance = function(point) {
+    return Math.sqrt(Math.pow(this.x - point.x, 2) +
+                     Math.pow(this.y - point.y, 2));
+};
+
+Point.prototype.clone = function() {
+    return new Point(this.x, this.y);
+};
+
+Point.prototype.as_array = function() {
+    return [x, y];
+};
+
 
 function Player(id, name, color, position, size) {
     this.id = id;
@@ -94,76 +106,81 @@ function Player(id, name, color, position, size) {
     this.color = color;
     this.position = position;
     this.size = size;
-    this.velocity = new Point(0, 0);
     this.blobs = [new Blob(this, size, position)];
-
-    this.split = function() {
-        b = [];
-        this.blobs.forEach(function(v) {
-            b.push.apply(v.split());
-        });
-        this.blobs = b;
-    };
-
-    this.update = function(dt) {
-        this.blobs.forEach(function(v) {
-            v.update(dt);
-        })
-    }
-
-    this.draw = function(gl, program) {
-        this.blobs.forEach(function(v) {
-            v.draw(gl, program);
-        })
-    }
 }
+
+Player.prototype.split = function() {
+    b = [];
+    this.blobs.forEach(function(v) {
+        b.push.apply(v.split());
+    });
+    this.blobs = b;
+};
+
+Player.prototype.update = function(dt) {
+    var size = 0;
+    this.blobs.forEach(function(v) {
+        v.update(dt);
+        size += v.size;
+    })
+    this.size = size;
+}
+
+Player.prototype.draw = function(gl, program) {
+    this.blobs.forEach(function(v) {
+        v.draw(gl, program);
+    })
+}
+
 
 function Blob(player, size, position, velocity) {
     this.player = player;
     this.size = size;
     this.position = position;
     this.velocity = velocity || new Point(0, 0);
-
     this.radius = circleAreaToRadius(this.size);
-
-    this.split = function() {
-        return [new Blob(this.player, this.size / 2, this.position, this.velocity),
-                new Blob(this.player, this.size / 2, this.position, this.velocity)];
-    };
-
-    this.update = function(dt) {
-        this.radius = circleAreaToRadius(this.size);
-    };
-
-    this.draw = function(gl, program) {
-        const ATTRIBUTES = 2;
-        const numFans = 16;
-        const degreePerFan = (2 * Math.PI) / numFans;
-        var vertexData = [this.position.x, this.position.y];
-
-        for(var i = 0; i <= numFans; i++) {
-          var index = ATTRIBUTES * i + 2; // there is already 2 items in array
-          var angle = degreePerFan * (i+1);
-          vertexData[index] = this.position.x + Math.cos(angle) * this.radius;
-          vertexData[index + 1] = this.position.y + Math.sin(angle) * this.radius;
-        }
-
-        var vertexDataTyped = new Float32Array(vertexData);
-
-        var buffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-        gl.bufferData(gl.ARRAY_BUFFER, vertexDataTyped, gl.STATIC_DRAW);
-
-        var resolutionLocation = gl.getUniformLocation(program, "u_resolution");
-        gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
-
-        gl.enableVertexAttribArray(positionLocation);
-
-        var positionLocation = gl.getAttribLocation(program, "a_position");
-        gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, ATTRIBUTES * Float32Array.BYTES_PER_ELEMENT, 0);
-        gl.drawArrays(gl.TRIANGLE_FAN, 0, vertexData.length/ATTRIBUTES);
-    };
 }
+
+Blob.prototype.split = function() {
+    return [new Blob(this.player, this.size / 2, this.position, this.velocity),
+            new Blob(this.player, this.size / 2, this.position, this.velocity)];
+};
+
+Blob.prototype.update = function(dt) {
+    this.radius = circleAreaToRadius(this.size);
+    this.velocity = (this.velocity + this.position.distance(game.mouse)) / 2;
+    this.position = this.position.add(this.velocity);
+};
+
+Blob.prototype.draw = function(gl, program) {
+    const ATTRIBUTES = 2;
+    const numFans = 16;
+    const degreePerFan = (2 * Math.PI) / numFans;
+    var vertexData = [this.position.x, this.position.y];
+
+    for(var i = 0; i <= numFans; i++) {
+        var index = ATTRIBUTES * i + 2; // there is already 2 items in array
+        var angle = degreePerFan * (i+1);
+        vertexData[index] = this.position.x + Math.cos(angle) * this.radius;
+        vertexData[index + 1] = this.position.y + Math.sin(angle) * this.radius;
+    }
+
+    var vertexDataTyped = new Float32Array(vertexData);
+
+    var buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, vertexDataTyped, gl.STATIC_DRAW);
+
+    var resolutionLocation = gl.getUniformLocation(program, "u_resolution");
+    gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
+
+    gl.enableVertexAttribArray(positionLocation);
+
+    var positionLocation = gl.getAttribLocation(program, "a_position");
+    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, ATTRIBUTES * Float32Array.BYTES_PER_ELEMENT, 0);
+    gl.drawArrays(gl.TRIANGLE_FAN, 0, vertexData.length/ATTRIBUTES);
+};
+
 
 // Event Handlers
 function onLoad() {
@@ -176,6 +193,10 @@ function onResize() {
     
     canvas.width = window.innerWidth * dp;
     canvas.height = window.innerHeight * dp;
+}
+
+function onMouseMove(e) {
+    game.mouse = new Point(e.clientX, e.clientY);
 }
 
 
