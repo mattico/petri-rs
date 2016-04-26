@@ -40,7 +40,7 @@ var game = {
             this.gl = gl;
             this.program = program;
 
-            this.players.push(new Player(0, 'Matt', 'green', new Point(0, 0), 100));
+            this.players.push(new Player(0, 'Matt', 'green', new Point(500, 500), 500));
 
             this.lastTime = performance.now();
 
@@ -134,11 +134,12 @@ Player.prototype.draw = function(gl, program) {
 
 
 function Blob(player, size, position, velocity) {
+    this.areaMult = 50;
     this.player = player;
     this.size = size;
     this.position = position;
     this.velocity = velocity || new Point(0, 0);
-    this.radius = circleAreaToRadius(this.size);
+    this.radius = circleAreaToRadius(this.size * this.areaMult);
 }
 
 Blob.prototype.split = function() {
@@ -147,14 +148,14 @@ Blob.prototype.split = function() {
 };
 
 Blob.prototype.update = function(dt) {
-    this.radius = circleAreaToRadius(this.size);
-    this.velocity = (this.velocity + this.position.distance(game.mouse)) / 2;
-    this.position = this.position.add(this.velocity);
+    this.radius = circleAreaToRadius(this.size * this.areaMult);
+//     this.velocity = (this.velocity + this.position.distance(game.mouse)) / 2;
+//     this.position = this.position.add(this.velocity);
 };
 
 Blob.prototype.draw = function(gl, program) {
     const ATTRIBUTES = 2;
-    const numFans = 16;
+    const numFans = 26;
     const degreePerFan = (2 * Math.PI) / numFans;
     var vertexData = [this.position.x, this.position.y];
 
@@ -170,6 +171,9 @@ Blob.prototype.draw = function(gl, program) {
     var buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, vertexDataTyped, gl.STATIC_DRAW);
+
+    var fillLocation = gl.getUniformLocation(program, "u_fill");
+    gl.uniform4f(fillLocation, 0.5, 0.5, 0.5, 0);
 
     var resolutionLocation = gl.getUniformLocation(program, "u_resolution");
     gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
