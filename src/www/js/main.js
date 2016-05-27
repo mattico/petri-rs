@@ -86,10 +86,31 @@ Point.prototype.sub = function(point) {
                      this.y - point.y);
 };
 
+Point.prototype.mul = function(val) {
+    return new Point(this.x * val,
+                     this.y * val);
+}
+
 Point.prototype.distance = function(point) {
     return Math.sqrt(Math.pow(this.x - point.x, 2) +
                      Math.pow(this.y - point.y, 2));
 };
+
+Point.prototype.direction = function(point) {
+    return new Point(point.x - this.x, point.y - this.y);
+}
+
+Point.prototype.length = function() {
+    return Math.sqrt(Math.pow(this.x, 2) + Math.pow(this.y, 2));
+}
+
+Point.prototype.unit = function() {
+    return new Point(this.x / this.length(), this.y / this.length());
+}
+
+Point.prototype.clamp = function(max) {
+    return this.length() < max ? this.clone() : this.unit().mul(max);
+}
 
 Point.prototype.clone = function() {
     return new Point(this.x, this.y);
@@ -149,18 +170,18 @@ Blob.prototype.split = function() {
 
 Blob.prototype.update = function(dt) {
     this.radius = circleAreaToRadius(this.size * this.areaMult);
-//     this.velocity = (this.velocity + this.position.distance(game.mouse)) / 2;
-//     this.position = this.position.add(this.velocity);
+    this.velocity = this.velocity.add(this.position.direction(game.mouse)).mul(.5 * dt * 1e-3).clamp(30);
+    this.position = this.position.add(this.velocity.mul(dt));
 };
 
 Blob.prototype.draw = function(gl, program) {
-    const ATTRIBUTES = 2;
+    const attributes = 2;
     const numFans = 26;
     const degreePerFan = (2 * Math.PI) / numFans;
     var vertexData = [this.position.x, this.position.y];
 
-    for(var i = 0; i <= numFans; i++) {
-        var index = ATTRIBUTES * i + 2; // there is already 2 items in array
+    for (var i = 0; i <= numFans; i++) {
+        var index = attributes * i + 2; // there is already 2 items in array
         var angle = degreePerFan * (i+1);
         vertexData[index] = this.position.x + Math.cos(angle) * this.radius;
         vertexData[index + 1] = this.position.y + Math.sin(angle) * this.radius;
@@ -173,7 +194,7 @@ Blob.prototype.draw = function(gl, program) {
     gl.bufferData(gl.ARRAY_BUFFER, vertexDataTyped, gl.STATIC_DRAW);
 
     var fillLocation = gl.getUniformLocation(program, "u_fill");
-    gl.uniform4f(fillLocation, 0.5, 0.5, 0.5, 0);
+    gl.uniform4f(fillLocation, 1.0, 0.0, 0.0, 0);
 
     var resolutionLocation = gl.getUniformLocation(program, "u_resolution");
     gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
@@ -181,8 +202,8 @@ Blob.prototype.draw = function(gl, program) {
     gl.enableVertexAttribArray(positionLocation);
 
     var positionLocation = gl.getAttribLocation(program, "a_position");
-    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, ATTRIBUTES * Float32Array.BYTES_PER_ELEMENT, 0);
-    gl.drawArrays(gl.TRIANGLE_FAN, 0, vertexData.length/ATTRIBUTES);
+    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, attributes * Float32Array.BYTES_PER_ELEMENT, 0);
+    gl.drawArrays(gl.TRIANGLE_FAN, 0, vertexData.length/attributes);
 };
 
 
