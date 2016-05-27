@@ -109,7 +109,7 @@ Point.prototype.unit = function() {
 }
 
 Point.prototype.clamp = function(max) {
-    return this.length() < max ? this.clone() : this.unit().mul(max);
+    return this.length() < max ? this.clone() : this.mul(max / this.length());
 }
 
 Point.prototype.clone = function() {
