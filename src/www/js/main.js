@@ -1,17 +1,25 @@
 'use strict';
 
 var game = {
+    canvas: null,
     lastTime: 0,
+    dt: 0,
     players: [],
     gl: null,
     program: null,
     mouse: new Point(0, 0),
+    timeStep: 1000/60,
+    fpsMeter: null,
 
-    init: function() {
-        window.onresize = onResize;
-        document.onmousemove = onMouseMove;
+    init: function(canvas) {
+        this.canvas = canvas;
+
+        canvas.addEventListener('mousemove', onMouseMove, false);
+        canvas.addEventListener('resize', onResize, false);
 
         onResize();
+
+        this.fpsMeter = new FPSMeter({ decimals: 0, graph: true, theme: 'dark', left: '5px' });
 
         if (canvas.getContext) {
 
@@ -20,6 +28,11 @@ var game = {
                 depth: false,
                 stencil: false,
                 antialias: true,
+            }) || canvas.getContext('experimental-webgl', {
+                alpha: false,
+                depth: false,
+                stencil: false,
+                antialias: true,        
             });
 
             var vertex = getShader(gl, 'js/vertex.glsl', gl.VERTEX_SHADER);
@@ -44,17 +57,32 @@ var game = {
 
             this.lastTime = performance.now();
 
-            this.update(performance.now());
+            window.requestAnimationFrame(this.frame.bind(this));
 
         } else {
             throw 'No canvas support!';
         }
     },
 
-    update: function(time) {
-        var dt = this.lastTime - time;
+    frame: function() {
+        var time = performance.now();
+        this.dt += Math.min(time - this.lastTime, 100);
+
+        this.fpsMeter.tickStart();
+
+        while (this.dt > this.timeStep) {
+            this.dt -= this.timeStep;
+            this.update(this.dt);
+        }
+        this.draw();
         this.lastTime = time;
 
+        this.fpsMeter.tick();
+
+        window.requestAnimationFrame(this.frame.bind(this));
+    },
+
+    update: function(dt) {      
         var viewportWidth = window.innerWidth;
         var viewportHeight = window.innerHeight;
 
@@ -63,10 +91,16 @@ var game = {
         
         this.players.forEach(function(v) {
            v.update(dt);
-           v.draw(gl, program); 
         });
+    },
 
-        window.requestAnimationFrame(this.update.bind(this));
+    draw: function() {
+        var gl = this.gl;
+        var program = this.program;
+        
+        this.players.forEach(function(v) {
+           v.draw(gl, program);
+        });
     }
 };
 
@@ -209,7 +243,8 @@ Blob.prototype.draw = function(gl, program) {
 
 // Event Handlers
 function onLoad() {
-    game.init();
+    var canvas = document.getElementById('canvas');
+    game.init(canvas);
 }
 
 function onResize() {
